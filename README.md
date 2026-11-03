@@ -1,0 +1,41 @@
+# Eyes on Earth — Modern Earth Observation Satellites
+
+An interactive 3D infographic that walks through the modern Earth observation fleet in ten steps, built as a companion to the *Introduction to Geospatial Technologies*, Chapter 11 ("Images from Space") lecture.
+
+**Live demo:** https://shanem73.github.io/satellites/
+
+## Steps
+
+| # | Step | What you see |
+|---|------|--------------|
+| 0 | Eyes on Earth | The whole fleet, plus a timeline from Sputnik (1957) to Landsat 10 (planned 2031) |
+| 1 | Three ways to orbit | Sun-synchronous, near-polar, inclined and geostationary reference orbits |
+| 2 | NASA's EOS flagships | Terra, Aqua, Aura and their projected end-of-science dates (2027–2028) |
+| 3 | Landsat | Landsat 8 and 9 building up 185 km ground-track swaths; 1972–2031 lineage |
+| 4 | Copernicus Sentinels | Sentinel-1C/1D, -2B/2C, -3A/B/C, -5P, -6B, Biomass, Sentinel-4 on MTG-S1 |
+| 5 | Specialist science | NISAR, PACE, SWOT, ICESat-2, GRACE-FO, SMAP, OCO-2, GPM, TEMPO |
+| 6 | Weather fleet | GOES-19/18, Himawari-9, Meteosat-12, NOAA-20/21, Suomi NPP |
+| 7 | Beyond the US and Europe | ALOS-4, GOSAT-GW, Cartosat-3, EOS-04, Gaofen-3, Fengyun-3E, RADARSAT Constellation |
+| 8 | The commercial era | WorldView Legion, Pléiades Neo, Tanager-1, Planet SuperDoves, ICEYE; plus a 30 m → 34 cm resolution comparison |
+| 9 | Explore | Everything at once, with filters by operator |
+
+Click any satellite (or its name in the side panel) for its launch date, orbit, sensors and status. Arrow keys move between steps; `#step=3` in the URL deep-links to a step.
+
+## Run locally
+
+No build step. Serve the folder with any static server:
+
+```bash
+python3 -m http.server 8000
+# open http://localhost:8000
+```
+
+## Notes on accuracy
+
+- Orbits are simplified circular approximations (altitude, inclination, local time of ascending node) drawn in a Sun-fixed frame, not real-time ephemerides. Planet and ICEYE swarms are illustrative.
+- Mission facts are as of November 2026. Main sources: NASA (Terra, Aura mission pages), USGS (Landsat 7, Landsat 10), ESA/Copernicus Sentinel launch records, and *The State of Earth Observation 2026* (NewSpace Economy).
+
+## Credits
+
+- [three.js](https://threejs.org) r169 (MIT), vendored in `vendor/`.
+- Earth textures (NASA Blue Marble and Black Marble, via the [three-globe](https://github.com/vasturiano/three-globe) examples).

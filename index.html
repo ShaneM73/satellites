@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eyes on Earth</title>
+  <meta name="description" content="A 3D, step-by-step interactive infographic of modern Earth observation satellites: orbits, NASA EOS, Landsat, Copernicus Sentinels, weather and commercial constellations." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js" } }
+  </script>
+</head>
+<body>
+  <div id="scene" aria-label="3D globe with satellite orbits"></div>
+  <div id="labels" aria-hidden="true"></div>
+
+  <header class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-name">Eyes on Earth</span>
+    <span class="brand-sub">Modern Earth observation satellites</span>
+  </header>
+
+  <aside id="panel" class="panel" aria-live="polite">
+    <div class="panel-inner">
+      <div class="kicker" id="kicker"></div>
+      <h1 id="title"></h1>
+      <p id="body"></p>
+      <div id="extra"></div>
+      <div id="list" class="sat-list"></div>
+      <p id="hint" class="hint"></p>
+    </div>
+    <nav class="stepper" aria-label="Story steps">
+      <button id="prev" class="nav-btn" aria-label="Previous step">&larr;</button>
+      <div id="dots" class="dots"></div>
+      <button id="next" class="nav-btn primary" aria-label="Next step">Next &rarr;</button>
+    </nav>
+  </aside>
+
+  <div class="controls">
+    <label class="speed" title="Simulation speed">
+      <span>Speed</span>
+      <input id="speed" type="range" min="0" max="3" step="1" value="2" />
+      <output id="speedOut">600×</output>
+    </label>
+    <button id="labelsToggle" class="chip on" aria-pressed="true">Labels</button>
+    <button id="pause" class="chip" aria-pressed="false">Pause</button>
+  </div>
+
+  <div id="card" class="card" role="dialog" aria-modal="false" hidden>
+    <button class="card-close" id="cardClose" aria-label="Close">&times;</button>
+    <div class="card-agency" id="cardAgency"></div>
+    <h2 id="cardName"></h2>
+    <p id="cardText"></p>
+    <dl>
+      <dt>Launched</dt><dd id="cardLaunch"></dd>
+      <dt>Orbit</dt><dd id="cardOrbit"></dd>
+      <dt>Sensors</dt><dd id="cardSensors"></dd>
+      <dt>Status</dt><dd id="cardStatus"></dd>
+    </dl>
+  </div>
+
+  <div id="loading" class="loading">Loading Earth…</div>
+  <footer class="note">Orbits are simplified circular approximations · status as of Nov 2026 · <a href="https://github.com/ShaneM73/satellites" target="_blank" rel="noopener">source</a></footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
