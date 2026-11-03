@@ -163,7 +163,7 @@ const NASA = {
   terra:      { name: 'Terra', sat: 'terra' },
   aqua:       { name: 'Aqua', sat: 'aqua' },
   aura:       { name: 'Aura', sat: 'aura' },
-  landsat8:   { name: 'Landsat 8', sat: 'landsat8' },
+  landsat8:   { name: 'Landsat 8', sat: 'landsat8', hidden: true }, // shown in Lineage
   icesat2:    { name: 'ICESat-2', sat: 'icesat2' },
   gpm:        { name: 'GPM Core', sat: 'gpm' },
   oco2:       { name: 'OCO-2', sat: 'oco2' },
@@ -511,7 +511,7 @@ function flash(msg) { const t = $('hoverTip'); t.textContent = msg; t.style.tran
 
 // view keys: landsat9 | landsat7 | compare | lineage | gallery/<model> | custom
 const isMulti = v => v === 'compare' || v === 'lineage';
-const tabOf = v => (v.startsWith('gallery') ? 'gallery' : v);
+const tabOf = v => (v.startsWith('gallery') ? 'gallery' : v.startsWith('lineage') ? 'lineage' : v);
 let lastGallery = 'terra';
 const single = () => (isMulti(state.view) ? null : active[0]);
 
@@ -519,6 +519,7 @@ function viewKeys(view) {
   if (view === 'compare') return ['landsat7', 'landsat9'];
   if (view === 'lineage') return LINEAGE.map(l => l.key);
   if (view.startsWith('gallery')) return [view.split('/')[1] || lastGallery];
+  if (view.startsWith('lineage/')) return [view.slice(8)];
   return [view];
 }
 
@@ -596,10 +597,40 @@ function renderPanel() {
   }
   $('specs').replaceChildren(t);
 
-  // gallery picker
+  // gallery picker / lineage inspect list / back link
   const picker = $('picker');
   picker.replaceChildren();
-  picker.hidden = !gallery;
+  const fromLineage = state.view.startsWith('lineage/');
+  picker.hidden = !(gallery || lineage || fromLineage);
+  if (lineage) {
+    const h = document.createElement('h3'); h.className = 'sub'; h.innerHTML = 'Inspect one <span>or click a satellite</span>';
+    const grid = document.createElement('div'); grid.className = 'modules';
+    for (const l of LINEAGE) {
+      const b = document.createElement('button');
+      b.className = 'mod';
+      b.style.setProperty('--c', '#ffc94d');
+      b.innerHTML = `<i></i>${l.label} <small>${l.year}</small>`;
+      b.onclick = () => setView('lineage/' + l.key);
+      grid.appendChild(b);
+    }
+    picker.append(h, grid);
+  }
+  if (fromLineage) {
+    const b = document.createElement('button');
+    b.className = 'back-link';
+    b.innerHTML = '&larr; Back to Landsat lineage';
+    b.onclick = () => setView('lineage');
+    const nav = document.createElement('div'); nav.className = 'lineage-nav';
+    for (const l of LINEAGE) {
+      const n = document.createElement('button');
+      n.className = 'mini' + ('lineage/' + l.key === state.view ? ' on' : '');
+      n.textContent = l.year;
+      n.title = l.label;
+      n.onclick = () => setView('lineage/' + l.key);
+      nav.appendChild(n);
+    }
+    picker.append(b, nav);
+  }
   if (gallery) {
     const h = document.createElement('h3'); h.className = 'sub'; h.innerHTML = 'NASA 3D models <span>pick a satellite</span>';
     const grid = document.createElement('div'); grid.className = 'modules';
@@ -743,6 +774,16 @@ window.addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; docume
 
 // picking: click isolates, hover names the part
 const raycaster = new THREE.Raycaster();
+function pickModel(e) {
+  const ndc = new THREE.Vector2((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  let best = null;
+  for (const inst of active) {
+    const hit = raycaster.intersectObjects(inst.meshes, false).find(h => matsOf(h.object).some(m => m.visible));
+    if (hit && (!best || hit.distance < best.d)) best = { inst, d: hit.distance };
+  }
+  return best?.inst || null;
+}
 function pick(e) {
   const inst = single();
   if (!inst) return null;
@@ -766,6 +807,7 @@ renderer.domElement.addEventListener('pointerup', e => {
   const moved = !down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5;
   down = null;
   if (moved) return;
+  if (state.view === 'lineage') { const inst = pickModel(e); if (inst) setView('lineage/' + inst.key); return; }
   const p = pick(e);
   if (p) setHighlight(p.key);
 });
@@ -775,7 +817,8 @@ renderer.domElement.addEventListener('pointermove', e => {
   const now = performance.now();
   if (now - lastHover < 90) return;
   lastHover = now;
-  const p = pick(e);
+  const lin = state.view === 'lineage' ? pickModel(e) : null;
+  const p = lin ? { label: `Inspect ${LINEAGE.find(l => l.key === lin.key).label}`, color: '#ffc94d' } : pick(e);
   tip.style.opacity = p ? 1 : 0;
   renderer.domElement.style.cursor = p ? 'pointer' : '';
   if (p) { tip.textContent = p.label; tip.style.setProperty('--c', p.color); tip.style.transform = `translate(${e.clientX + 14}px, ${e.clientY + 12}px)`; }
@@ -901,6 +944,6 @@ function frame() {
 }
 
 const initial = decodeURIComponent((location.hash || '#landsat9').slice(1));
-const valid = ['landsat9', 'landsat7', 'compare', 'lineage', 'gallery'].includes(initial) || (initial.startsWith('gallery/') && MODELS[initial.slice(8)]?.simple);
-setView(valid ? initial : 'landsat9');
+const valid = ['landsat9', 'landsat7', 'compare', 'lineage', 'gallery'].includes(initial) || (initial.startsWith('gallery/') && MODELS[initial.slice(8)]?.simple && !MODELS[initial.slice(8)].hidden) || (initial.startsWith('lineage/') && LINEAGE.some(l => l.key === initial.slice(8)));
+setView(valid ? initial : initial === 'gallery/landsat8' ? 'lineage/landsat8' : 'landsat9');
 frame();

@@ -215,7 +215,7 @@ export const REFERENCE = [
 
 // Satellites with a 3D model in the hangar (spacecraft.html)
 export const MODEL_LINKS = {
-  terra: 'gallery/terra', aqua: 'gallery/aqua', aura: 'gallery/aura', landsat8: 'gallery/landsat8', landsat9: 'landsat9',
+  terra: 'gallery/terra', aqua: 'gallery/aqua', aura: 'gallery/aura', landsat8: 'lineage/landsat8', landsat9: 'landsat9',
   icesat2: 'gallery/icesat2', gpm: 'gallery/gpm', oco2: 'gallery/oco2', snpp: 'gallery/snpp',
   goes19: 'gallery/goes', goes18: 'gallery/goes', s6b: 'gallery/sentinel6', gracefo: 'gallery/grace',
 };
