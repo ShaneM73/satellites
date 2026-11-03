@@ -218,7 +218,19 @@ export const MODEL_LINKS = {
   terra: 'gallery/terra', aqua: 'gallery/aqua', aura: 'gallery/aura', landsat8: 'lineage/landsat8', landsat9: 'landsat9',
   icesat2: 'gallery/icesat2', gpm: 'gallery/gpm', oco2: 'gallery/oco2', snpp: 'gallery/snpp',
   goes19: 'gallery/goes', goes18: 'gallery/goes', s6b: 'gallery/sentinel6', gracefo: 'gallery/grace',
+  gf3: 'gallery/gf3', fy3e: 'gallery/fy3e',
 };
+
+// ESA Earth Online Visuals: interactive 3D models of ESA missions (viewable on ESA's site; not downloadable)
+export const ESA_VISUALS = 'https://visuals.earth.esa.int/';
+export const ESA_3D = {
+  biomass:   { label: 'Biomass', url: 'https://visuals.earth.esa.int/satellites/biomass' },
+  earthcare: { label: 'EarthCARE', url: 'https://visuals.earth.esa.int/satellites/earthcare' },
+  envisat:   { label: 'Envisat', url: 'https://visuals.earth.esa.int/satellites/envisat' },
+  flex:      { label: 'FLEX', url: 'https://visuals.earth.esa.int/satellites/flex' },
+};
+// globe satellite id -> ESA_3D key
+export const ESA_3D_BY_SAT = { biomass: 'biomass', s3c: 'flex' };
 
 export const STEPS = [
   {

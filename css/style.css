@@ -160,3 +160,6 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
 .inst-wrap summary a { color: var(--muted); text-transform: none; letter-spacing: 0; font-family: var(--font); margin-left: 6px; }
 .card { max-height: calc(100vh - 90px); overflow-y: auto; }
 .card .inst dl { grid-template-columns: 78px 1fr; font-size: 12px; }
+
+.card-link.ext { display: block; width: fit-content; margin-top: 8px; background: rgba(255,201,77,.16); color: var(--text); border: 1px solid rgba(255,201,77,.5); }
+.card-link.ext[hidden] { display: none; }

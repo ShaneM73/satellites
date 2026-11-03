@@ -1,5 +1,6 @@
 import { MISSIONS, LANES, MILESTONES } from './instruments.js';
 import { instrumentsHTML } from './inst-render.js';
+import { ESA_3D } from './data.js';
 
 const Y0 = 1955, Y1 = 2034, NOW = 2026.84;
 const LANE_COLORS = { history: '#d0d6e0', nasa: '#4da3ff', weather: '#38d9c0', europe: '#ffc94d', asia: '#ff7a9c', commercial: '#b48cff' };
@@ -89,6 +90,9 @@ function openDetail(key) {
   $('dNote').hidden = !m.note;
   $('dModel').hidden = !m.model;
   if (m.model) $('dModel').href = 'spacecraft.html#' + m.model;
+  const esa = ESA_3D[m.esa3d];
+  $('dEsa').hidden = !esa;
+  if (esa) { $('dEsa').href = esa.url; $('dEsa').textContent = `${esa.label} in 3D on ESA Earth Online Visuals ↗`; }
   $('dInst').innerHTML = instrumentsHTML(m.inst);
   d.hidden = false;
   d.scrollTop = 0;

@@ -4,7 +4,7 @@ import { GLTFLoader } from '../vendor/loaders/GLTFLoader.js';
 import { DRACOLoader } from '../vendor/loaders/DRACOLoader.js';
 import { RoomEnvironment } from '../vendor/environments/RoomEnvironment.js';
 import { STLLoader } from '../vendor/loaders/STLLoader.js';
-import { SATELLITES } from './data.js';
+import { SATELLITES, ESA_3D, ESA_VISUALS } from './data.js';
 import { MISSIONS } from './instruments.js';
 import { instrumentsHTML } from './inst-render.js';
 
@@ -218,6 +218,59 @@ for (const [k, n] of Object.entries(NASA)) {
         }
       });
     },
+  };
+}
+
+// ---- schematic models built from published descriptions (tools/build_schematic_models.py)
+const SCHEMATIC = {
+  gf3: { name: 'Gaofen-3', sat: 'gf3',
+    body: 'China’s civil C-band radar satellite: a 15 m phased-array antenna looks to the right of the track, imaging day and night in 12 modes. Schematic model built from published descriptions; proportions and placement are approximate.',
+    modules: {
+      Bus: ['Spacecraft bus', 'CS-L3000B-class bus (some sources say ZY1000B) carrying power, attitude control, propulsion and data handling; about 2.8–2.95 t at launch.'],
+      SAR_Antenna: ['C-SAR antenna', 'Active phased-array antenna, 15 m × 1.23 m in four panels with 1,536 T/R channels. It looks to the right of the ground track and steers its beam electronically for 12 imaging modes, from 1 m spotlight to 500 m global.'],
+      Deployment_Mechanism: ['Antenna deployment', 'Hinges and yoke that unfolded the four antenna panels, which were folded against two sides of the spacecraft at launch.'],
+      Solar_Arrays: ['Solar arrays', 'Two deployable triple-junction GaAs wings. In the dawn–dusk orbit they face the Sun almost all the time.'],
+      Data_Transmission_Antenna: ['Data transmission antenna', 'Downlinks radar data; the SAR produces raw data at up to 1,280 Mbit/s.'],
+      GPS_Antennas: ['Dual-frequency GPS', 'Precise orbit determination, needed to geolocate radar images.'],
+      CMGs_and_Wheels: ['CMGs & momentum wheels', 'Control moment gyros and wheels point the spacecraft to better than 0.03° and roll it up to ±31.5° to look left or right.'],
+      Batteries: ['Batteries', 'NiCd (100 Ah) and Li-ion (225 Ah) batteries supply the radar’s high peak power.'],
+      Antenna_Power_and_Control: ['Antenna power & interface units', 'Two antenna power units feed the panels; an antenna interface unit controls beam forming and steering.'],
+      SAR_Electronics: ['SAR central electronics', 'Generates the radar pulse, receives the echoes and formats raw data (typical SAR layout; position approximate).'],
+      Propulsion: ['Propulsion', 'Tank and thrusters for orbit maintenance (typical for this bus; not detailed in open sources).'],
+    } },
+  fy3e: { name: 'Fengyun-3E', sat: 'fy3e',
+    body: 'The first civil weather satellite in an early-morning (dawn–dusk) orbit, carrying 11 instruments for weather, wind, the ionosphere and the Sun. Schematic model built from the 2022 FY-3E system paper; instrument placement is approximate.',
+    modules: {
+      Bus: ['Spacecraft bus', 'Hexahedral FY-3 bus (body about 4.4 × 2.0 × 2.0 m) with service, payload and propulsion modules; about 2,675 kg.'],
+      Solar_Array: ['Solar array', 'One solar wing on one side of the body; in flight the spacecraft spans 11.6 m. Its cells face the Sun from the dawn–dusk orbit.'],
+      MERSI_LL: ['MERSI-LL imager', 'Low-light imager: 7 channels (0.5–12.5 µm) at 250 m–1 km, built for the dim light near the dawn terminator.'],
+      HIRAS_II: ['HIRAS-II sounder', 'Hyperspectral infrared sounder (650–2,550 cm⁻¹, 14 km) for temperature and humidity profiles.'],
+      MWTS_III: ['MWTS-III', 'Microwave temperature sounder, 23.8–57 GHz, 33 km.'],
+      MWHS_II: ['MWHS-II', 'Microwave humidity sounder, 89–190 GHz, 15–30 km.'],
+      WindRAD: ['WindRAD scatterometer', 'Wind radar at C band (5.4 GHz) and Ku band (13.256 GHz) with rotating fan beams; sea-surface wind vectors at 10–20 km.'],
+      GNOS_II: ['GNOS-II antennas', 'GNSS receivers for radio occultation (atmosphere and ionosphere profiles) and reflectometry (sea-surface wind speed).'],
+      Tri_IPM: ['Tri-IPM photometers', 'Three ionospheric photometers (135.6 nm and N₂ LBH bands) looking at three angles.'],
+      SIM_II: ['SIM-II', 'Solar irradiance monitor: total solar irradiance, 0.2–20 µm.'],
+      SSIM: ['SSIM', 'Solar spectral irradiance monitor, 165–1,650 nm.'],
+      X_EUVI: ['X-EUVI telescope', 'Solar X-ray and extreme-ultraviolet imager (0.6–8 nm and 19.5 nm) for space weather.'],
+      SEM: ['Space environment monitor', 'Measures charged particles and radiation, 30 eV–300 MeV.'],
+      Star_Sensors: ['Star sensors', 'Star cameras for three-axis attitude determination.'],
+      Downlink_Antennas: ['Downlink antennas', 'Send instrument data to ground stations (position approximate).'],
+      Propulsion_Module: ['Propulsion module', 'Tank and thrusters for orbit control.'],
+      Service_Module: ['Service module', 'Power control, avionics and data handling inside the bus.'],
+    } },
+};
+for (const [k, n] of Object.entries(SCHEMATIC)) {
+  const s = SATELLITES.find(x => x.id === n.sat) || {};
+  MODELS[k] = {
+    simple: true, schematic: true,
+    url: `assets/models/schematic/${k}.glb`,
+    name: n.name,
+    kicker: `Launched ${s.launched} · ${s.status} · schematic model`,
+    body: n.body,
+    specs: [['Sensors', s.sensors], ['Status', s.status]],
+    partsBy: 'node', unwrap: true, shells: ['Bus'], paths: [], focusSkip: [], modules: n.modules, labels: null,
+    view: k === 'fy3e' ? { dir: [1, 0.45, -1.2], dist: 1.6 } : { dir: [1, 0.55, 1.2], dist: 1.6 },
   };
 }
 
@@ -646,7 +699,7 @@ function renderPanel() {
     const h = document.createElement('h3'); h.className = 'sub'; h.innerHTML = 'NASA 3D models <span>pick a satellite</span>';
     const grid = document.createElement('div'); grid.className = 'modules';
     for (const [k, m] of Object.entries(MODELS)) {
-      if (!m.simple || m.hidden) continue;
+      if (!m.simple || m.hidden || m.schematic) continue;
       const b = document.createElement('button');
       b.className = 'mod' + (state.view === 'gallery/' + k ? ' active' : '');
       b.style.setProperty('--c', '#4da3ff');
@@ -656,7 +709,31 @@ function renderPanel() {
     }
     const credit = document.createElement('p'); credit.className = 'credit';
     credit.innerHTML = 'Models: <a href="https://github.com/nasa/NASA-3D-Resources" target="_blank" rel="noopener">NASA 3D Resources</a> (free, without copyright).';
-    picker.append(h, grid, credit);
+    const h2 = document.createElement('h3'); h2.className = 'sub'; h2.innerHTML = 'ESA models <span>open on ESA\u2019s site</span>';
+    const grid2 = document.createElement('div'); grid2.className = 'modules';
+    for (const e of Object.values(ESA_3D)) {
+      const a = document.createElement('a');
+      a.className = 'mod ext'; a.href = e.url; a.target = '_blank'; a.rel = 'noopener';
+      a.style.setProperty('--c', '#ffc94d');
+      a.innerHTML = `<i></i>${e.label} <small>↗</small>`;
+      grid2.appendChild(a);
+    }
+    const credit2 = document.createElement('p'); credit2.className = 'credit';
+    credit2.innerHTML = `Interactive 3D on <a href="${ESA_VISUALS}" target="_blank" rel="noopener">ESA Earth Online Visuals</a>; ESA does not offer these models for download, so they open in a new tab.`;
+    const h3 = document.createElement('h3'); h3.className = 'sub'; h3.innerHTML = 'Schematic models <span>China</span>';
+    const grid3 = document.createElement('div'); grid3.className = 'modules';
+    for (const [k, m] of Object.entries(MODELS)) {
+      if (!m.schematic) continue;
+      const b = document.createElement('button');
+      b.className = 'mod' + (state.view === 'gallery/' + k ? ' active' : '');
+      b.style.setProperty('--c', '#ff7a9c');
+      b.innerHTML = `<i></i>${m.name}`;
+      b.onclick = () => setView('gallery/' + k);
+      grid3.appendChild(b);
+    }
+    const credit3 = document.createElement('p'); credit3.className = 'credit';
+    credit3.innerHTML = 'No open 3D models exist for these satellites, so these were built from published descriptions and papers. Shapes, sizes and positions are approximate.';
+    picker.append(h, grid, credit, h3, grid3, credit3, h2, grid2, credit2);
   }
 
   // parts list: isolate, hide/show

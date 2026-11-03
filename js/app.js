@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
-import { AGENCIES, SATELLITES, SWARMS, REFERENCE, STEPS, MODEL_LINKS } from './data.js';
+import { AGENCIES, SATELLITES, SWARMS, REFERENCE, STEPS, MODEL_LINKS, ESA_3D, ESA_3D_BY_SAT } from './data.js';
 import { MISSION_BY_SAT } from './instruments.js';
 import { instrumentsHTML } from './inst-render.js';
 
@@ -309,6 +309,9 @@ function openCard(obj) {
   const ml = $('cardModel');
   ml.hidden = !MODEL_LINKS[d.id];
   if (MODEL_LINKS[d.id]) ml.href = 'spacecraft.html#' + MODEL_LINKS[d.id];
+  const esa = ESA_3D[ESA_3D_BY_SAT[d.id]];
+  $('cardEsa').hidden = !esa;
+  if (esa) { $('cardEsa').href = esa.url; $('cardEsa').textContent = `${esa.label} in 3D on ESA Earth Online Visuals ↗`; }
   const mission = MISSION_BY_SAT[d.id];
   $('cardInstWrap').hidden = !mission;
   if (mission) {
