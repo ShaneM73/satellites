@@ -144,3 +144,19 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
 .step-link { margin: 0 0 16px; }
 .card-link[hidden] { display: none; }
 @media (max-width: 760px) { body:not(.craft) .brand-nav { display: none; } }
+
+/* instrument cards (shared with globe cards and the hangar) */
+.inst { border: 1px solid var(--panel-border); border-left: 3px solid var(--c, var(--accent)); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: rgba(255,255,255,.03); }
+.inst-name { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+.inst dl { display: grid; grid-template-columns: 88px 1fr; gap: 4px 10px; margin: 0; font-size: 12.5px; line-height: 1.4; }
+.inst dt { color: var(--muted); }
+.inst dd { margin: 0; }
+
+
+.inst-wrap summary { cursor: pointer; font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--accent-2); margin: 14px 0 8px; list-style: none; }
+.inst-wrap summary::-webkit-details-marker { display: none; }
+.inst-wrap summary::before { content: '▸ '; }
+.inst-wrap[open] summary::before { content: '▾ '; }
+.inst-wrap summary a { color: var(--muted); text-transform: none; letter-spacing: 0; font-family: var(--font); margin-left: 6px; }
+.card { max-height: calc(100vh - 90px); overflow-y: auto; }
+.card .inst dl { grid-template-columns: 78px 1fr; font-size: 12px; }

@@ -21,6 +21,14 @@ An interactive 3D infographic that walks through the modern Earth observation fl
 
 Click any satellite (or its name in the side panel) for its launch date, orbit, sensors and status. Arrow keys move between steps; `#step=3` in the URL deep-links to a step.
 
+## Mission timeline (`timeline.html`)
+
+**Live:** https://shanem73.github.io/satellites/timeline.html
+
+70 missions from Sputnik (1957) to Landsat 10 (planned 2031), in lanes by operator (early missions, NASA/USGS, NOAA & weather, Europe, Asia & Canada, commercial). Bars show operating, ended, projected end-of-science and planned periods. Click a bar for every instrument with its **spatial, spectral, temporal and radiometric resolution** (133 instruments). Filter by operator or search by satellite or instrument name; `timeline.html#terra` deep-links to a mission.
+
+The same instrument tables appear on the globe tour's satellite cards and in the hangar. Data live in `js/instruments.js`: nominal design specifications; "n/a" marks radar, lidar and ranging instruments that have no bit depth, and "—" marks values not published in the sources used (listed in `SPEC_SOURCES`).
+
 ## 3D satellite hangar (`spacecraft.html`)
 
 **Live:** https://shanem73.github.io/satellites/spacecraft.html

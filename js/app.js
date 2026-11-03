@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
 import { AGENCIES, SATELLITES, SWARMS, REFERENCE, STEPS, MODEL_LINKS } from './data.js';
+import { MISSION_BY_SAT } from './instruments.js';
+import { instrumentsHTML } from './inst-render.js';
 
 // ---------------------------------------------------------------- constants
 const R_EARTH = 6371;               // km; 1 scene unit = 1 Earth radius
@@ -307,6 +309,12 @@ function openCard(obj) {
   const ml = $('cardModel');
   ml.hidden = !MODEL_LINKS[d.id];
   if (MODEL_LINKS[d.id]) ml.href = 'spacecraft.html#' + MODEL_LINKS[d.id];
+  const mission = MISSION_BY_SAT[d.id];
+  $('cardInstWrap').hidden = !mission;
+  if (mission) {
+    $('cardInst').innerHTML = instrumentsHTML(mission.inst, AGENCIES[d.agency].color);
+    $('cardInstWrap').querySelector('summary').innerHTML = `Instruments &amp; resolutions <a href="timeline.html#${mission.key}">timeline &rarr;</a>`;
+  }
   ui.card.hidden = false;
   highlighted = obj;
 }

@@ -5,6 +5,8 @@ import { DRACOLoader } from '../vendor/loaders/DRACOLoader.js';
 import { RoomEnvironment } from '../vendor/environments/RoomEnvironment.js';
 import { STLLoader } from '../vendor/loaders/STLLoader.js';
 import { SATELLITES } from './data.js';
+import { MISSIONS } from './instruments.js';
+import { instrumentsHTML } from './inst-render.js';
 
 // ------------------------------------------------------------------ model catalogue
 const GOLD = '#ffd54a';
@@ -596,6 +598,15 @@ function renderPanel() {
     t.innerHTML = '<tbody>' + cfg.specs.map(r => `<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join('') + '</tbody>';
   }
   $('specs').replaceChildren(t);
+
+  // instruments and the four resolutions (from the shared mission dataset)
+  const keyOf = i => i?.key;
+  const mission = inst ? MISSIONS.find(m => m.model && m.model.split('/').pop() === keyOf(inst)) : null;
+  $('instWrap').hidden = !mission;
+  if (mission) {
+    $('instList').innerHTML = instrumentsHTML(mission.inst, '#4da3ff');
+    $('instWrap').querySelector('summary').innerHTML = `Instruments &amp; resolutions <a href="timeline.html#${mission.key}">timeline &rarr;</a>`;
+  }
 
   // gallery picker / lineage inspect list / back link
   const picker = $('picker');

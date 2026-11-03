@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mission Timeline</title>
+  <meta name="description" content="Timeline of Earth observation satellites from Sputnik (1957) to Landsat 10 (2031), with the spatial, spectral, temporal and radiometric resolution of every instrument." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/timeline.css" />
+</head>
+<body class="tl-page">
+  <header class="tl-head">
+    <div class="brand static">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">Mission Timeline</span>
+      <nav class="brand-nav"><a href="index.html">Globe tour</a> · <a href="spacecraft.html#lineage">3D hangar</a></nav>
+    </div>
+    <p class="tl-lead">70 Earth observation missions from 1957 to 2031. Click any bar to see every instrument with its <b>spatial</b>, <b>spectral</b>, <b>temporal</b> and <b>radiometric</b> resolution.</p>
+    <div class="tl-tools">
+      <div id="lanes" class="tl-lanes" role="group" aria-label="Filter by operator"></div>
+      <input id="search" type="search" placeholder="Search satellite or instrument…" aria-label="Search satellite or instrument" />
+      <div class="tl-legend">
+        <span><i class="lg op"></i>Operating</span><span><i class="lg ended"></i>Ended</span><span><i class="lg proj"></i>Projected end</span><span><i class="lg plan"></i>Planned</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="tl-wrap">
+    <div id="chart" class="tl-chart"></div>
+  </main>
+
+  <aside id="detail" class="tl-detail" hidden aria-live="polite">
+    <button class="card-close" id="detailClose" aria-label="Close">&times;</button>
+    <div class="card-agency" id="dLane"></div>
+    <h2 id="dName"></h2>
+    <p id="dMeta" class="tl-meta"></p>
+    <p id="dNote" class="tl-note"></p>
+    <a id="dModel" class="card-link" hidden>View in 3D &rarr;</a>
+    <h3 class="sub">Instruments and resolutions</h3>
+    <div id="dInst"></div>
+  </aside>
+
+  <footer class="note">Nominal design specifications · "n/a" = radar, lidar or ranging (no bit depth) · "—" = not published in sources used · status as of Nov 2026 · <a href="https://github.com/ShaneM73/satellites" target="_blank" rel="noopener">source</a></footer>
+  <script type="module" src="js/timeline.js"></script>
+</body>
+</html>

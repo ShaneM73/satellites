@@ -230,6 +230,7 @@ export const STEPS = [
       ['2014', 'Sentinel-1A'], ['2025', 'NISAR'], ['2031', 'Landsat 10'],
     ],
     hint: 'Drag to rotate, scroll or pinch to zoom, click any satellite for details.',
+    link: { href: 'timeline.html', text: 'Open the full mission timeline, 1957–2031' },
   },
   {
     key: 'orbits', kicker: 'Step 1', title: 'Three ways to orbit',
