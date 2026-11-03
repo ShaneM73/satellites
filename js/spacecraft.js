@@ -3,6 +3,7 @@ import { OrbitControls } from '../vendor/OrbitControls.js';
 import { GLTFLoader } from '../vendor/loaders/GLTFLoader.js';
 import { DRACOLoader } from '../vendor/loaders/DRACOLoader.js';
 import { RoomEnvironment } from '../vendor/environments/RoomEnvironment.js';
+import { STLLoader } from '../vendor/loaders/STLLoader.js';
 import { SATELLITES } from './data.js';
 
 // ------------------------------------------------------------------ model catalogue
@@ -20,6 +21,7 @@ const MODELS = {
       ['Swath', '185 km, 16-day repeat'],
       ['Orbit', '705 km, sun-synchronous'],
     ],
+    partsBy: 'node',
     shells: ['Spacecraft'],
     paths: ['OLI2_LightPath', 'TIRS2_LightPath'],
     focusSkip: ['Spacecraft'],
@@ -105,6 +107,7 @@ const MODELS = {
       ['Swath', '185 km, 16-day repeat'],
       ['Service', '1999–2025; science ended 2024'],
     ],
+    partsBy: 'node',
     shells: ['External_Hardware', 'Bus_Gold_MLI', 'ETM_Housing'],
     paths: ['ETM_LightPath', 'ETM_ThermalPath'],
     focusSkip: ['Solar_Array'],
@@ -141,6 +144,20 @@ const MODELS = {
   },
 };
 
+// ---- surface-material families, used to split models that have no named modules
+const FAMILIES = [
+  ['solar', 'Solar array', /solar|cell/i, 'Photovoltaic panels that convert sunlight into electrical power.'],
+  ['antenna', 'Antennas & reflectors', /dish|antenna|reflector|mirror/i, 'Communication antennas, instrument reflectors and mirror-finished parts.'],
+  ['mli', 'Insulation blankets (MLI)', /gold|foil|blanket|mli|bronze|leaf|orange|krinkle/i, 'Multilayer insulation that wraps the spacecraft to keep it within safe temperatures. Make it see-through to look inside.'],
+  ['instrument', 'Instrument surfaces', /instr|wiffs|hooded|lens/i, 'Surfaces of the science instruments.'],
+  ['white', 'White paint & radiators', /white|radiator|plasic|plastic/i, 'White surfaces that radiate heat away to space.'],
+  ['black', 'Black surfaces', /black|dark/i, 'Black-painted or anodized surfaces.'],
+  ['metal', 'Metal structure', /silver|metal|grey|gray|chrome|crome|alumin|iron|plating|hardware|rail|boom|thruster|pole|joint|trim/i, 'Structure, booms, brackets and thrusters.'],
+];
+const OTHER_FAMILY = ['other', 'Other surfaces', null, 'Remaining surfaces of the model.'];
+const FAMILY_SHELLS = ['mli', 'white', 'black'];
+const familyOf = name => FAMILIES.find(f => f[2].test(name || '')) || OTHER_FAMILY;
+
 // ---- NASA 3D Resources models (github.com/nasa/NASA-3D-Resources, free and without copyright)
 const NASA = {
   terra:      { name: 'Terra', sat: 'terra' },
@@ -152,7 +169,23 @@ const NASA = {
   oco2:       { name: 'OCO-2', sat: 'oco2' },
   snpp:       { name: 'Suomi NPP', sat: 'snpp' },
   goes:       { name: 'GOES', sat: 'goes19', note: 'NASA’s generic GOES model; the current GOES-R series (GOES-16 to -19) differs in detail.' },
-  sentinel6:  { name: 'Sentinel-6', sat: 's6b', note: 'Model of the Jason Continuity of Service (Sentinel-6) design shared by 6A and 6B.' },
+  sentinel6:  { name: 'Sentinel-6', sat: 's6b', note: 'Model of the Jason Continuity of Service (Sentinel-6) design shared by 6A and 6B.',
+                parts: {
+                  BUS: ['Spacecraft bus', 'The main structure that carries power, avionics and propulsion.'],
+                  pos4Antenna: ['Poseidon-4 altimeter', 'Radar altimeter antenna that measures sea-surface height to about centimetre precision.'],
+                  AMR: ['AMR-C radiometer', 'Microwave radiometer that measures water vapour, used to correct the altimeter signal delay.'],
+                  'DORIS-A': ['DORIS antenna', 'Receives ground-beacon signals for precise orbit determination.'],
+                  GNSS: ['GNSS antenna', 'Navigation-satellite receiver antenna for precise positioning.'],
+                  GNSS_POD_RO_SPA: ['GNSS-RO antennas', 'Radio-occultation antennas that profile atmospheric temperature and humidity.'],
+                  LRA: ['Laser retroreflector', 'Corner-cube mirrors that ground lasers bounce off to track the orbit.'],
+                  starTrackers: ['Star trackers', 'Star cameras that measure the spacecraft\u2019s orientation.'],
+                  XBA: ['X-band antenna', 'Downlinks the science data.'],
+                  array: ['Solar array', 'Photovoltaic wings that power the spacecraft.'],
+                  array_locks: ['Array hold-downs', 'Latches that held the solar wings during launch.'],
+                  CESS: ['Coarse Earth–Sun sensors', 'Simple sensors used to find the Earth and Sun during safe mode.'],
+                  MPPS: ['MPPS', 'Spacecraft subsystem as named in the NASA model.'],
+                  SHA: ['SHA', 'Spacecraft subsystem as named in the NASA model.'],
+                } },
   grace:      { name: 'GRACE', sat: 'gracefo', note: 'Model of the original GRACE (2002–2017); its successor GRACE-FO uses a very similar twin-satellite design.' },
   landsat123: { name: 'Landsat 1–3', hidden: true, launched: '1972, 1975, 1978', sensors: 'MSS (~80 m), RBV cameras', status: 'Retired by 1983',
                 text: 'The first civilian Earth-resources satellites, based on the Nimbus weather-satellite bus.' },
@@ -168,7 +201,8 @@ for (const [k, n] of Object.entries(NASA)) {
     kicker: `Launched ${n.launched || s.launched} · ${n.status || s.status}`,
     body: [n.text || s.text, n.note].filter(Boolean).join(' '),
     specs: [['Sensors', n.sensors || s.sensors], ['Status', n.status || s.status]],
-    shells: [], paths: [], focusSkip: [], modules: {}, labels: [],
+    partsBy: n.parts ? 'node' : 'material', unwrap: true,
+    shells: n.parts ? ['BUS'] : FAMILY_SHELLS, paths: [], focusSkip: [], modules: n.parts || {}, labels: null,
     view: { dir: [1, 0.45, 1.1], dist: 1.9 },
     hidden: n.hidden,
     fix(root) {
@@ -269,38 +303,97 @@ window.addEventListener('resize', () => { updateViewOffset(); renderer.setSize(w
 // ------------------------------------------------------------------ loading
 const draco = new DRACOLoader().setDecoderPath('vendor/draco/').setDecoderConfig({ type: 'wasm' });
 const loader = new GLTFLoader().setDRACOLoader(draco);
+const stlLoader = new STLLoader();
 const loaded = {}; // key -> instance
 const FOCUS_SIZE = 3;
+const _p = new THREE.Vector3();
 
-function prepare(key, gltf) {
-  const cfg = MODELS[key];
-  const root = gltf.scene;
-  // own copy of every material so highlighting never leaks between meshes
-  root.traverse(n => {
-    if (!n.isMesh) return;
-    n.material = Array.isArray(n.material) ? n.material.map(m => m.clone()) : n.material.clone();
-  });
-  cfg.fix(root);
+const matsOf = mesh => (Array.isArray(mesh.material) ? mesh.material : [mesh.material]);
+const unwrap = n => { while (!n.isMesh && n.children.length === 1) n = n.children[0]; return n; };
+const GENERIC_NAME = /^(mesh|object|cube|cylinder|sphere|plane|node|group|polysurface|default|untitled|layer|root)?([\s._-]*\d+)*$/i;
 
-  // modules = top-level named nodes
-  const modules = {};
-  root.updateMatrixWorld(true);
-  for (const node of root.children) {
-    const meshes = [];
-    node.traverse(n => { if (n.isMesh) meshes.push(n); });
-    const mats = meshes.flatMap(m => (Array.isArray(m.material) ? m.material : [m.material]));
-    mats.forEach(m => { m.userData.base = { opacity: m.opacity, transparent: m.transparent, depthWrite: m.depthWrite, emissive: m.emissive ? m.emissive.clone() : null, ei: m.emissiveIntensity }; });
-    const box = new THREE.Box3().setFromObject(node);
-    modules[node.name] = { node, meshes, mats, box, center: box.getCenter(new THREE.Vector3()), basePos: node.position.clone(), offset: new THREE.Vector3() };
+// bounds of the faces that use material `idx` (sampled), in root space
+function expandByMaterial(box, mesh, idx) {
+  const g = mesh.geometry, pos = g.attributes.position, index = g.index;
+  const ranges = Array.isArray(mesh.material) ? g.groups.filter(gr => gr.materialIndex === idx) : [{ start: 0, count: index ? index.count : pos.count }];
+  for (const r of ranges) {
+    const step = Math.max(1, Math.floor(r.count / 400));
+    for (let i = r.start; i < r.start + r.count; i += step) {
+      _p.fromBufferAttribute(pos, index ? index.getX(i) : i).applyMatrix4(mesh.matrixWorld);
+      box.expandByPoint(_p);
+    }
   }
+}
+
+// A "part" is something the viewer can isolate, ghost, hide and label:
+// a named node (cutaways, Sentinel-6, multi-file STL) or a family of surface materials.
+function buildParts(root, cfg) {
+  root.updateMatrixWorld(true);
+  const parts = {};
+  const add = (key, label, desc) => (parts[key] ||= { key, label, desc, meshes: [], mats: [], node: null, self: false, box: new THREE.Box3() });
+  if (cfg.partsBy === 'node') {
+    const base = cfg.unwrap ? unwrap(root) : root;
+    if (base !== root && base.isMesh) { // a parent mesh (e.g. Sentinel-6 BUS) is its own part
+      const [label, desc] = cfg.modules[base.name] || [base.name, ''];
+      const p = add(base.name, label, desc);
+      p.meshes.push(base); p.mats.push(...matsOf(base)); p.self = true;
+      matsOf(base).forEach((_, i) => expandByMaterial(p.box, base, i));
+    }
+    for (const node of base.children) {
+      if (base !== root && node.isMesh && GENERIC_NAME.test(node.name)) { // unnamed primitives of the parent (e.g. Sentinel-6 BUS)
+        const [label, desc] = cfg.modules[base.name] || [base.name, ''];
+        const p = add(base.name, label, desc);
+        p.meshes.push(node); p.mats.push(...matsOf(node)); p.self = true;
+        matsOf(node).forEach((_, i) => expandByMaterial(p.box, node, i));
+        continue;
+      }
+      const [label, desc] = cfg.modules[node.name] || [node.name, ''];
+      const p = add(node.name || node.uuid, label, desc);
+      p.node = node;
+      node.traverse(n => { if (n.isMesh) { p.meshes.push(n); p.mats.push(...matsOf(n)); } });
+      p.box.setFromObject(node);
+    }
+  } else {
+    root.traverse(mesh => {
+      if (!mesh.isMesh) return;
+      matsOf(mesh).forEach((m, i) => {
+        const [key, label, , desc] = familyOf(m.name);
+        const p = add(key, label, desc);
+        if (!p.meshes.includes(mesh)) p.meshes.push(mesh);
+        p.mats.push(m);
+        expandByMaterial(p.box, mesh, i);
+      });
+    });
+  }
+  for (const p of Object.values(parts)) {
+    if (p.box.isEmpty()) p.box.setFromCenterAndSize(new THREE.Vector3(), new THREE.Vector3(1e-3, 1e-3, 1e-3));
+    p.center = p.box.getCenter(new THREE.Vector3());
+    p.color = '#' + (p.mats.find(m => m.color)?.color.getHexString() || 'cccccc');
+    p.isShell = cfg.shells.includes(p.key);
+    p.isPath = cfg.paths.includes(p.key);
+    p.basePos = p.node ? p.node.position.clone() : null;
+    p.offset = new THREE.Vector3();
+    p.mats.forEach(m => { m.userData.base = { opacity: m.opacity, transparent: m.transparent, depthWrite: m.depthWrite, emissive: m.emissive ? m.emissive.clone() : null }; });
+  }
+  return parts;
+}
+
+function prepare(key, root, animations = []) {
+  const cfg = MODELS[key];
+  // own copy of every material so highlighting never leaks between meshes
+  root.traverse(n => { if (n.isMesh) n.material = Array.isArray(n.material) ? n.material.map(m => m.clone()) : n.material.clone(); });
+  cfg.fix?.(root);
+  const parts = buildParts(root, cfg);
+  const matPart = new Map();
+  for (const p of Object.values(parts)) p.mats.forEach(m => matPart.set(m.uuid, p.key));
 
   // normalize: centre and scale the main body (excluding long arrays) to FOCUS_SIZE
   const focus = new THREE.Box3();
-  for (const [k, m] of Object.entries(modules)) if (!cfg.focusSkip.includes(k)) focus.union(m.box);
+  for (const [k, p] of Object.entries(parts)) if (!cfg.focusSkip.includes(k)) focus.union(p.box);
   const size = focus.getSize(new THREE.Vector3());
-  const scale = (FOCUS_SIZE * (cfg.sizeAdj || 1)) / Math.max(size.x, size.y, size.z);
+  const span = Math.max(size.x, size.y, size.z) || 1;
+  const scale = (FOCUS_SIZE * (cfg.sizeAdj || 1)) / span;
   const center = focus.getCenter(new THREE.Vector3());
-
   const pivot = new THREE.Group();     // spins
   const holder = new THREE.Group();    // normalizes
   holder.scale.setScalar(scale);
@@ -308,52 +401,119 @@ function prepare(key, gltf) {
   holder.add(root);
   pivot.add(holder);
 
-  // explode directions (in root space) away from the focus centre
-  const span = Math.max(size.x, size.y, size.z);
-  for (const [k, m] of Object.entries(modules)) {
-    const d = m.center.clone().sub(center);
-    if (d.lengthSq() < 1e-6) d.set(0, 1, 0);
-    m.dir = d.normalize().multiplyScalar(span * 0.55);
-    m.isShell = cfg.shells.includes(k);
+  // explode directions (root space) away from the focus centre
+  for (const p of Object.values(parts)) {
+    const d = p.center.clone().sub(center);
+    if (d.lengthSq() < 1e-9) d.set(0, 1, 0);
+    p.dir = d.normalize().multiplyScalar(span * 0.55);
   }
 
-  // labels
-  let labels = cfg.labels;
-  if (!labels) labels = Object.entries(modules).map(([k, m]) => ({ m: k, pr: 1, t: cfg.modules[k]?.[0] || k, p: m.center.toArray() }));
+  // labels: explicit list (Landsat 9) or one per part
+  const labels = cfg.labels || Object.values(parts).map(p => ({ m: p.key, pr: 1, t: p.label, p: p.center.toArray() }));
   const labelEls = labels.map(l => {
     const el = document.createElement('div');
     el.className = 'part-label' + (l.pr ? '' : ' minor');
     el.textContent = l.t;
-    const mesh = modules[l.m]?.mats[0];
-    el.style.setProperty('--c', mesh ? '#' + mesh.color.getHexString() : GOLD);
+    el.style.setProperty('--c', parts[l.m]?.color || GOLD);
     el.style.opacity = 0;
     document.getElementById('labels').appendChild(el);
     return el;
   });
 
   let mixer = null;
-  if (gltf.animations?.length) {
+  if (animations.length) {
     mixer = new THREE.AnimationMixer(root);
-    gltf.animations.forEach(a => mixer.clipAction(a).play());
+    animations.forEach(a => mixer.clipAction(a).play());
   }
-  return { key, cfg, root, pivot, holder, modules, labels, labelEls, mixer };
+  let tris = 0;
+  root.traverse(n => { if (n.isMesh) tris += (n.geometry.index ? n.geometry.index.count : n.geometry.attributes.position.count) / 3; });
+  return { key, cfg, root, pivot, holder, parts, matPart, labels, labelEls, mixer, tris: Math.round(tris), meshes: Object.values(parts).flatMap(p => p.meshes) };
 }
 
 function load(key) {
   if (loaded[key]) return Promise.resolve(loaded[key]);
-  return new Promise((resolve, reject) => loader.load(MODELS[key].url, g => { loaded[key] = prepare(key, g); resolve(loaded[key]); }, undefined, reject));
+  return new Promise((resolve, reject) => loader.load(MODELS[key].url, g => { loaded[key] = prepare(key, g.scene, g.animations); resolve(loaded[key]); }, undefined, reject));
+}
+
+// ------------------------------------------------------------------ your own files (as in the original viewer)
+function disposeInstance(inst) {
+  scene.remove(inst.pivot);
+  inst.labelEls.forEach(el => el.remove());
+  inst.tag?.remove();
+  inst.root.traverse(n => { if (n.isMesh) { n.geometry.dispose(); matsOf(n).forEach(m => m.dispose()); } });
+}
+
+async function openFiles(fileList) {
+  const files = [...fileList];
+  const models = files.filter(f => /\.(glb|gltf)$/i.test(f.name));
+  const stls = files.filter(f => /\.stl$/i.test(f.name));
+  if (!models.length && !stls.length) { flash('Use .glb, .gltf or .stl files'); return; }
+  $('loading').textContent = 'Reading your file…';
+  $('loading').classList.remove('done');
+  try {
+    let root, animations = [], partsBy, shells = [], paths = [], name;
+    if (models.length) {
+      const f = models[0];
+      name = f.name;
+      const gltf = await loader.parseAsync(await f.arrayBuffer(), '');
+      root = gltf.scene; animations = gltf.animations;
+      const base = unwrap(root);
+      const named = base.children.filter(c => c.name && !GENERIC_NAME.test(c.name));
+      partsBy = !base.isMesh && base.children.length >= 2 && named.length >= base.children.length / 2 ? 'node' : 'material';
+      if (partsBy === 'node') {
+        const keys = base.children.map(c => c.name || c.uuid);
+        shells = keys.filter(k => /spacecraft|body|bus|housing|shell|mli|external/i.test(k));
+        paths = keys.filter(k => /light_?path|beam|ray/i.test(k));
+      } else shells = FAMILY_SHELLS;
+    } else {
+      // several STL parts are assembled in one scene; colours follow the original viewer's naming rules
+      name = stls.map(f => f.name).join(', ');
+      root = new THREE.Group();
+      const palette = [0xd8dee6, 0xe8a33d, 0x6fb8ff, 0x9be89b, 0xd88fd8];
+      for (const [i, f] of stls.entries()) {
+        const geo = stlLoader.parse(await f.arrayBuffer());
+        geo.computeVertexNormals();
+        const lower = f.name.toLowerCase();
+        const mat = new THREE.MeshStandardMaterial({ color: palette[i % palette.length], metalness: 0.45, roughness: 0.5 });
+        if (lower.includes('element')) { mat.color.set(0xffd54a); mat.metalness = 0.55; mat.roughness = 0.3; mat.emissive.set(0x3a2f00); }
+        else if (/light_path|beam|ray/.test(lower)) { mat.color.set(0x5fd4ff); mat.transparent = true; mat.opacity = 0.55; mat.depthWrite = false; mat.emissive.set(0x0a3a52); }
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.name = f.name.replace(/\.stl$/i, '');
+        root.add(mesh);
+        if (/light_path|beam|ray/.test(lower)) paths.push(mesh.name);
+        else if (i === 0 || /assembled|landsat|spacecraft|body/.test(lower)) shells.push(mesh.name);
+      }
+      partsBy = 'node';
+    }
+    if (loaded.custom) disposeInstance(loaded.custom);
+    delete loaded.custom;
+    MODELS.custom = {
+      simple: true, hidden: true, name, partsBy, unwrap: true, shells, paths, focusSkip: [], modules: {}, labels: null,
+      kicker: 'Your file · stays in this browser', body: 'Loaded locally; nothing is uploaded. Click a part to isolate it, use X-ray and See-through to look inside, or the eye icons to hide parts.',
+      specs: [], view: { dir: [1, 0.5, 1.1], dist: 2 },
+      fix(r) { r.traverse(o => { if (o.isMesh) matsOf(o).forEach(m => { if (m.roughness !== undefined) m.roughness = Math.max(m.roughness, 0.25); }); }); },
+    };
+    loaded.custom = prepare('custom', root, animations);
+    MODELS.custom.specs = [['File', name], ['Parts', `${Object.keys(loaded.custom.parts).length} (${partsBy === 'node' ? 'by object name' : 'by surface material'})`], ['Triangles', loaded.custom.tris.toLocaleString()]];
+    await setView('custom');
+  } catch (e) {
+    $('loading').textContent = 'Could not read the file: ' + (e.message || e);
+    setTimeout(() => $('loading').classList.add('done'), 2500);
+  }
 }
 
 // ------------------------------------------------------------------ state
-const state = { view: 'landsat9', explode: 0, xray: false, paths: true, labels: true, spin: true, highlight: null };
+const state = { view: 'landsat9', explode: 0, xray: false, see: 0.12, paths: true, labelMode: 'main', wire: false, spin: true, highlight: null, hidden: new Set() };
 let active = []; // instances currently shown
 
 const $ = id => document.getElementById(id);
+function flash(msg) { const t = $('hoverTip'); t.textContent = msg; t.style.transform = 'translate(50vw, 50vh) translate(-50%, -50%)'; t.style.opacity = 1; setTimeout(() => (t.style.opacity = 0), 1800); }
 
-// view keys: landsat9 | landsat7 | compare | lineage | gallery/<model>
+// view keys: landsat9 | landsat7 | compare | lineage | gallery/<model> | custom
 const isMulti = v => v === 'compare' || v === 'lineage';
 const tabOf = v => (v.startsWith('gallery') ? 'gallery' : v);
 let lastGallery = 'terra';
+const single = () => (isMulti(state.view) ? null : active[0]);
 
 function viewKeys(view) {
   if (view === 'compare') return ['landsat7', 'landsat9'];
@@ -367,7 +527,7 @@ async function setView(view) {
   if (view.startsWith('gallery/')) lastGallery = view.split('/')[1];
   state.view = view;
   state.highlight = null;
-  history.replaceState(null, '', '#' + view);
+  if (view !== 'custom') history.replaceState(null, '', '#' + view);
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.view === tabOf(view)));
   $('loading').textContent = 'Loading spacecraft…';
   $('loading').classList.remove('done');
@@ -393,7 +553,6 @@ async function setView(view) {
       inst.tag.innerHTML = view === 'lineage' ? `<b>${l.year}</b>${l.label}` : `<b>${inst.key === 'landsat7' ? '1999' : '2021'}</b>${inst.cfg.name}`;
     }
   });
-  $('xray').hidden = !insts.some(i => i.cfg.shells.length);
   $('paths').hidden = !insts.some(i => i.cfg.paths.length);
   $('loading').classList.add('done');
   renderPanel();
@@ -413,10 +572,13 @@ function resetCamera() {
 }
 
 // ------------------------------------------------------------------ panel
+const EYE = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>';
+const EYE_OFF = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" d="M3 3l18 18M10.6 5.1A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 4.4-1"/></svg>';
+
 function renderPanel() {
-  document.querySelectorAll('.credit').forEach(c => c.remove());
   const compare = state.view === 'compare', lineage = state.view === 'lineage', gallery = state.view.startsWith('gallery');
-  const cfg = isMulti(state.view) ? null : active[0].cfg;
+  const inst = single();
+  const cfg = inst?.cfg;
   const txt = compare ? COMPARE : lineage ? LINEAGE_TEXT : null;
   $('kicker').textContent = txt ? txt.kicker : cfg.kicker;
   $('title').textContent = txt ? txt.title : cfg.name;
@@ -434,13 +596,13 @@ function renderPanel() {
   }
   $('specs').replaceChildren(t);
 
-  const list = $('modules');
-  list.replaceChildren();
-  $('modInfo').hidden = true;
-  $('modHead').hidden = isMulti(state.view);
-  if (isMulti(state.view)) return;
+  // gallery picker
+  const picker = $('picker');
+  picker.replaceChildren();
+  picker.hidden = !gallery;
   if (gallery) {
-    $('modHead').innerHTML = 'NASA 3D models <span>pick a satellite</span>';
+    const h = document.createElement('h3'); h.className = 'sub'; h.innerHTML = 'NASA 3D models <span>pick a satellite</span>';
+    const grid = document.createElement('div'); grid.className = 'modules';
     for (const [k, m] of Object.entries(MODELS)) {
       if (!m.simple || m.hidden) continue;
       const b = document.createElement('button');
@@ -448,60 +610,81 @@ function renderPanel() {
       b.style.setProperty('--c', '#4da3ff');
       b.innerHTML = `<i></i>${m.name}`;
       b.onclick = () => setView('gallery/' + k);
-      list.appendChild(b);
+      grid.appendChild(b);
     }
-    const credit = document.createElement('p');
-    credit.className = 'credit';
+    const credit = document.createElement('p'); credit.className = 'credit';
     credit.innerHTML = 'Models: <a href="https://github.com/nasa/NASA-3D-Resources" target="_blank" rel="noopener">NASA 3D Resources</a> (free, without copyright).';
-    list.after(credit);
-    return;
+    picker.append(h, grid, credit);
   }
-  $('modHead').innerHTML = 'Modules <span>click to isolate</span>';
-  const inst = active[0];
-  for (const [k, [label]] of Object.entries(cfg.modules)) {
-    const mod = inst.modules[k];
-    if (!mod) continue;
+
+  // parts list: isolate, hide/show
+  const list = $('modules');
+  list.replaceChildren();
+  $('modInfo').hidden = true;
+  $('partsSection').hidden = !inst;
+  if (!inst) return;
+  const byMaterial = cfg.partsBy === 'material';
+  $('modHead').innerHTML = `${byMaterial ? 'Parts by surface' : 'Modules'} <span>click to isolate · eye to hide</span>`;
+  for (const p of Object.values(inst.parts)) {
+    const row = document.createElement('div');
+    row.className = 'mod-row';
     const b = document.createElement('button');
     b.className = 'mod';
-    b.dataset.mod = k;
-    b.style.setProperty('--c', '#' + mod.mats[0].color.getHexString());
-    b.innerHTML = `<i></i>${label}`;
-    b.onclick = () => setHighlight(k);
-    list.appendChild(b);
+    b.dataset.mod = p.key;
+    b.style.setProperty('--c', p.color);
+    b.innerHTML = `<i></i><span>${p.label}</span>`;
+    b.onclick = () => setHighlight(p.key);
+    const eye = document.createElement('button');
+    const hk = inst.key + ':' + p.key;
+    eye.className = 'eye' + (state.hidden.has(hk) ? ' off' : '');
+    eye.title = 'Show / hide';
+    eye.setAttribute('aria-label', `Show or hide ${p.label}`);
+    eye.innerHTML = state.hidden.has(hk) ? EYE_OFF : EYE;
+    eye.onclick = () => {
+      state.hidden.has(hk) ? state.hidden.delete(hk) : state.hidden.add(hk);
+      eye.classList.toggle('off', state.hidden.has(hk));
+      eye.innerHTML = state.hidden.has(hk) ? EYE_OFF : EYE;
+      applyLook();
+    };
+    row.append(b, eye);
+    list.appendChild(row);
   }
 }
 
 function setHighlight(k) {
   state.highlight = state.highlight === k ? null : k;
-  document.querySelectorAll('.mod').forEach(b => b.classList.toggle('active', b.dataset.mod === state.highlight));
+  document.querySelectorAll('#modules .mod').forEach(b => b.classList.toggle('active', b.dataset.mod === state.highlight));
   const info = $('modInfo');
-  if (state.highlight && !isMulti(state.view)) {
-    const [label, desc] = MODELS[state.view].modules[state.highlight];
-    info.style.setProperty('--c', '#' + active[0].modules[state.highlight].mats[0].color.getHexString());
-    info.innerHTML = `<b>${label}</b>${desc}`;
+  const inst = single();
+  if (state.highlight && inst) {
+    const p = inst.parts[state.highlight];
+    info.style.setProperty('--c', p.color);
+    info.innerHTML = `<b>${p.label}</b>${p.desc || ''}`;
     info.hidden = false;
   } else info.hidden = true;
   applyLook();
 }
 
-// ------------------------------------------------------------------ look (isolate / x-ray / paths)
+// ------------------------------------------------------------------ look (isolate / x-ray / see-through / wireframe / hide)
 function applyLook() {
   for (const inst of active) {
-    for (const [k, mod] of Object.entries(inst.modules)) {
-      const isPath = inst.cfg.paths.includes(k);
-      mod.node.visible = !isPath || state.paths;
+    const isolating = state.highlight && inst === single();
+    for (const [k, p] of Object.entries(inst.parts)) {
+      const hidden = state.hidden.has(inst.key + ':' + k) || (p.isPath && !state.paths);
       let opacity = null;
-      if (state.highlight && inst.key === state.view) opacity = k === state.highlight ? 1 : 0.06;
-      else if (state.xray && mod.isShell) opacity = 0.1;
-      for (const m of mod.mats) {
+      if (isolating) opacity = k === state.highlight ? 1 : state.see;
+      else if (state.xray && p.isShell) opacity = state.see;
+      for (const m of p.mats) {
         const b = m.userData.base;
+        m.visible = !hidden;
+        m.wireframe = state.wire && !p.isPath;
         if (opacity === null) {
           m.opacity = b.opacity; m.transparent = b.transparent; m.depthWrite = b.depthWrite;
           if (m.emissive && b.emissive) m.emissive.copy(b.emissive);
         } else {
           m.transparent = true;
-          m.opacity = isPath ? Math.min(opacity, b.opacity) : opacity;
-          m.depthWrite = opacity >= 1 && !isPath;
+          m.opacity = p.isPath ? Math.min(opacity, b.opacity) : opacity;
+          m.depthWrite = opacity >= 1 && !p.isPath;
           if (m.emissive && b.emissive) {
             if (k === state.highlight) m.emissive.copy(m.color).multiplyScalar(0.25);
             else m.emissive.copy(b.emissive);
@@ -521,29 +704,83 @@ const toggle = (id, key, after) => {
 };
 toggle('xray', 'xray', applyLook);
 toggle('paths', 'paths', applyLook);
-toggle('labelsToggle', 'labels');
+toggle('wire', 'wire', applyLook);
 toggle('spin', 'spin');
-$('reset').onclick = () => { state.highlight = null; $('explode').value = 0; state.explode = 0; setHighlight(null); active.forEach(i => i.pivot.rotation.set(0, 0, 0)); resetCamera(); };
+const LABEL_MODES = { main: 'Labels: main', all: 'Labels: all', off: 'Labels: off' };
+$('labelsToggle').onclick = e => {
+  state.labelMode = { main: 'all', all: 'off', off: 'main' }[state.labelMode];
+  e.currentTarget.textContent = LABEL_MODES[state.labelMode];
+  e.currentTarget.classList.toggle('on', state.labelMode !== 'off');
+};
+$('see').oninput = e => {
+  state.see = +e.target.value;
+  if (!state.xray && !state.highlight) { state.xray = true; $('xray').classList.add('on'); $('xray').setAttribute('aria-pressed', true); }
+  applyLook();
+};
+$('showAll').onclick = () => {
+  const inst = single(); if (!inst) return;
+  [...state.hidden].filter(h => h.startsWith(inst.key + ':')).forEach(h => state.hidden.delete(h));
+  state.highlight = 'x'; setHighlight('x'); renderPanel(); applyLook();
+};
+$('reset').onclick = () => {
+  state.highlight = null; state.explode = 0; $('explode').value = 0;
+  state.hidden.clear();
+  setHighlight(null); renderPanel();
+  active.forEach(i => i.pivot.rotation.set(0, state.view === 'lineage' ? -0.5 : 0, 0));
+  resetCamera();
+};
 $('explode').oninput = e => (state.explode = +e.target.value);
 
-// click a part to isolate it
+// open / drop files
+const fileInput = $('fileInput');
+$('openFile').onclick = () => fileInput.click();
+fileInput.onchange = e => { if (e.target.files.length) openFiles(e.target.files); fileInput.value = ''; };
+let dragDepth = 0;
+window.addEventListener('dragenter', e => { e.preventDefault(); dragDepth++; document.body.classList.add('dragging'); });
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('dragging'); } });
+window.addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; document.body.classList.remove('dragging'); if (e.dataTransfer.files.length) openFiles(e.dataTransfer.files); });
+
+// picking: click isolates, hover names the part
 const raycaster = new THREE.Raycaster();
-let down = null;
-renderer.domElement.addEventListener('pointerdown', e => (down = { x: e.clientX, y: e.clientY }));
-renderer.domElement.addEventListener('pointerup', e => {
-  if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5 || isMulti(state.view) || active[0].cfg.simple) return;
+function pick(e) {
+  const inst = single();
+  if (!inst) return null;
   const ndc = new THREE.Vector2((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
   raycaster.setFromCamera(ndc, camera);
-  const inst = active[0];
-  const meshes = Object.entries(inst.modules)
-    .filter(([k, m]) => m.node.visible && !inst.cfg.paths.includes(k) && !(state.xray && m.isShell) && !(state.highlight && k !== state.highlight))
-    .flatMap(([, m]) => m.meshes);
-  const hit = raycaster.intersectObjects(meshes, false)[0];
-  if (!hit) return;
-  let n = hit.object;
-  while (n.parent && n.parent !== inst.root) n = n.parent;
-  if (inst.modules[n.name]) setHighlight(n.name);
+  for (const hit of raycaster.intersectObjects(inst.meshes, false)) {
+    const mats = matsOf(hit.object);
+    const m = mats.length > 1 ? mats[hit.face?.materialIndex ?? 0] : mats[0];
+    const k = m && inst.matPart.get(m.uuid);
+    if (!k || !m.visible) continue;
+    const p = inst.parts[k];
+    if (p.isPath) continue;
+    if (m.transparent && m.opacity < 0.5) continue; // look through ghosted parts
+    return p;
+  }
+  return null;
+}
+let down = null, lastHover = 0;
+renderer.domElement.addEventListener('pointerdown', e => (down = { x: e.clientX, y: e.clientY }));
+renderer.domElement.addEventListener('pointerup', e => {
+  const moved = !down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5;
+  down = null;
+  if (moved) return;
+  const p = pick(e);
+  if (p) setHighlight(p.key);
 });
+renderer.domElement.addEventListener('pointermove', e => {
+  const tip = $('hoverTip');
+  if (down || e.pointerType === 'touch') { tip.style.opacity = 0; return; }
+  const now = performance.now();
+  if (now - lastHover < 90) return;
+  lastHover = now;
+  const p = pick(e);
+  tip.style.opacity = p ? 1 : 0;
+  renderer.domElement.style.cursor = p ? 'pointer' : '';
+  if (p) { tip.textContent = p.label; tip.style.setProperty('--c', p.color); tip.style.transform = `translate(${e.clientX + 14}px, ${e.clientY + 12}px)`; }
+});
+renderer.domElement.addEventListener('pointerleave', () => ($('hoverTip').style.opacity = 0));
 
 // ------------------------------------------------------------------ scan diagrams (whiskbroom vs pushbroom)
 function scanDiagram(canvas, mode) {
@@ -554,11 +791,9 @@ function scanDiagram(canvas, mode) {
   return dt => {
     t += dt;
     g.clearRect(0, 0, W, H);
-    // satellite
     const sx = W / 2, sy = 22;
     g.fillStyle = '#d9dee5'; g.fillRect(sx - 10, sy - 7, 20, 14);
     g.fillStyle = '#2a4b9b'; g.fillRect(sx - 34, sy - 4, 22, 8); g.fillRect(sx + 12, sy - 4, 22, 8);
-    // ground rows scroll toward the satellite track
     const speed = mode === 'whisk' ? 1.1 : 1.6;
     const progress = (t * speed) % rows;
     const done = Math.floor(progress);
@@ -572,7 +807,6 @@ function scanDiagram(canvas, mode) {
         g.fillRect(10 + c * cw + 0.5, y - ch + 1, cw - 1, ch - 1);
       }
     }
-    // beam
     const ry = baseY - done * ch - ch / 2;
     g.fillStyle = mode === 'push' ? 'rgba(95,212,255,.25)' : 'rgba(255,213,74,.35)';
     g.beginPath();
@@ -586,6 +820,61 @@ function scanDiagram(canvas, mode) {
 }
 const diagrams = [scanDiagram($('scanWhisk'), 'whisk'), scanDiagram($('scanPush'), 'push')];
 
+// ------------------------------------------------------------------ callout labels with leader lines
+const leaders = $('leaders');
+const toScreen = vec => ({ x: (vec.x * 0.5 + 0.5) * window.innerWidth, y: (-vec.y * 0.5 + 0.5) * window.innerHeight, z: vec.z });
+const LABEL_GAP = 20, LEADER = 46;
+
+function labelVisible(inst, l) {
+  const p = inst.parts[l.m];
+  if (!p || state.labelMode === 'off' || state.hidden.has(inst.key + ':' + l.m) || (p.isPath && !state.paths)) return false;
+  if (state.view === 'lineage') return false;
+  if (state.view === 'compare') return !!l.pr && /OLI2_Optics|ETM_Housing|TIRS2$/.test(l.m);
+  if (state.highlight) return l.m === state.highlight;
+  if (state.labelMode === 'all') return true;
+  return !!l.pr && !p.isPath;
+}
+
+function layoutLabels() {
+  let svg = '';
+  for (const inst of active) {
+    if (inst.tag) {
+      v.copy(inst.pivot.position).add(_tagOff).project(camera);
+      const s = toScreen(v);
+      inst.tag.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, 0)`;
+      inst.tag.style.opacity = isMulti(state.view) && v.z < 1 ? 1 : 0;
+    }
+    v.copy(inst.pivot.position).project(camera);
+    const c = toScreen(v);
+    const items = [];
+    inst.labels.forEach((l, i) => {
+      const el = inst.labelEls[i];
+      if (!labelVisible(inst, l)) { el.style.opacity = 0; return; }
+      v.fromArray(l.p).add(inst.parts[l.m].offset);
+      inst.root.localToWorld(v);
+      v.project(camera);
+      if (v.z > 1) { el.style.opacity = 0; return; }
+      const a = toScreen(v);
+      let dx = a.x - c.x, dy = a.y - c.y;
+      const len = Math.hypot(dx, dy) || 1;
+      dx /= len; dy /= len;
+      if (Math.abs(dx) < 0.25) dx = dx < 0 ? -0.25 : 0.25; // keep callouts to the left or right
+      items.push({ el, a, side: dx < 0 ? -1 : 1, x: a.x + dx * LEADER, y: a.y + dy * LEADER * 0.6, color: inst.parts[l.m].color });
+    });
+    // push apart labels on each side so they don't overlap
+    for (const side of [-1, 1]) {
+      const col = items.filter(it => it.side === side).sort((p, q) => p.y - q.y);
+      for (let i = 1; i < col.length; i++) if (col[i].y - col[i - 1].y < LABEL_GAP) col[i].y = col[i - 1].y + LABEL_GAP;
+    }
+    for (const it of items) {
+      it.el.style.opacity = 1;
+      it.el.style.transform = `translate(${it.x}px, ${it.y}px) translate(${it.side < 0 ? '-100%' : '0'}, -50%)`;
+      svg += `<line x1="${it.a.x.toFixed(1)}" y1="${it.a.y.toFixed(1)}" x2="${it.x.toFixed(1)}" y2="${it.y.toFixed(1)}" stroke="${it.color}"/><circle cx="${it.a.x.toFixed(1)}" cy="${it.a.y.toFixed(1)}" r="2.6" fill="${it.color}"/>`;
+    }
+  }
+  leaders.innerHTML = svg;
+}
+
 // ------------------------------------------------------------------ loop
 const clock = new THREE.Clock();
 const v = new THREE.Vector3();
@@ -596,41 +885,18 @@ function frame() {
   for (const inst of active) {
     if (state.spin) inst.pivot.rotation.y += dt * 0.18;
     inst.mixer?.update(dt);
-    for (const [k, mod] of Object.entries(inst.modules)) {
-      const amt = mod.isShell ? 0 : state.explode;
-      mod.offset.lerp(v.copy(mod.dir).multiplyScalar(amt), 0.15);
-      mod.node.position.copy(mod.basePos).add(mod.offset);
-      if (inst.cfg.paths.includes(k)) for (const m of mod.mats) if (m.emissive) m.emissiveIntensity = 1.2 + Math.sin(time * 4) * 0.8;
+    for (const p of Object.values(inst.parts)) {
+      if (p.node && !p.isShell && !p.self) {
+        p.offset.lerp(v.copy(p.dir).multiplyScalar(state.explode), 0.15);
+        p.node.position.copy(p.basePos).add(p.offset);
+      }
+      if (p.isPath) for (const m of p.mats) if (m.emissive) m.emissiveIntensity = 1.2 + Math.sin(time * 4) * 0.8;
     }
   }
   controls.update();
   renderer.render(scene, camera);
   diagrams.forEach(d => d(dt));
-
-  // labels
-  for (const inst of active) {
-    const showAll = !isMulti(state.view);
-    if (inst.tag) {
-      v.copy(inst.pivot.position).add(_tagOff);
-      v.project(camera);
-      inst.tag.style.transform = `translate(${(v.x * 0.5 + 0.5) * window.innerWidth}px, ${(-v.y * 0.5 + 0.5) * window.innerHeight}px) translate(-50%, 0)`;
-      inst.tag.style.opacity = isMulti(state.view) && v.z < 1 ? 1 : 0;
-    }
-    inst.labels.forEach((l, i) => {
-      const el = inst.labelEls[i];
-      const mod = inst.modules[l.m];
-      let show = state.labels && mod && mod.node.visible;
-      if (show) show = state.highlight ? (inst.key === state.view && l.m === state.highlight) : (l.pr && (showAll || (state.view === 'compare' && /OLI2_Optics|ETM_Housing/.test(l.m))) && !inst.cfg.paths.includes(l.m));
-      if (show) {
-        v.fromArray(l.p).add(mod.offset);
-        inst.root.localToWorld(v);
-        v.project(camera);
-        if (v.z > 1) show = false;
-        else el.style.transform = `translate(${(v.x * 0.5 + 0.5) * window.innerWidth}px, ${(-v.y * 0.5 + 0.5) * window.innerHeight}px) translate(-50%, -140%)`;
-      }
-      el.style.opacity = show ? 1 : 0;
-    });
-  }
+  layoutLabels();
   requestAnimationFrame(frame);
 }
 

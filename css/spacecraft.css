@@ -27,7 +27,7 @@ body.craft { background: radial-gradient(ellipse at 60% 45%, #0d1a33 0%, #04070d
 .scan figcaption { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
 .scan b { color: var(--text); font-weight: 600; }
 
-.craft-controls { flex-wrap: wrap; justify-content: flex-end; max-width: calc(100vw - 440px); }
+.craft-controls { flex-wrap: wrap; justify-content: flex-end; max-width: calc(100vw - 440px); row-gap: 6px; }
 .craft-controls .speed input { width: 90px; }
 
 .part-label { position: absolute; left: 0; top: 0; white-space: nowrap; font: 500 11px/1 var(--mono); color: #0b1020; padding: 3px 7px; border-radius: 4px;
@@ -35,7 +35,9 @@ body.craft { background: radial-gradient(ellipse at 60% 45%, #0d1a33 0%, #04070d
 .part-label.minor { background: rgba(8,14,26,.85); color: var(--text); border-left: 2px solid var(--c, #ffd54a); }
 
 @media (max-width: 760px) {
-  .craft-controls { max-width: none; left: 8px; top: 48px; right: 8px; justify-content: flex-start; }
+  .craft-controls { max-width: none; left: 8px; top: 48px; right: 8px; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .craft-controls > * { flex: none; }
+  .craft-controls .speed input { width: 70px; }
   .craft-controls .speed { display: flex; }
   .craft-controls .speed span { display: inline; }
   .modules { grid-template-columns: 1fr 1fr; }
@@ -46,3 +48,35 @@ body.craft { background: radial-gradient(ellipse at 60% 45%, #0d1a33 0%, #04070d
 .model-tag b { display: block; font: 600 11px var(--mono); color: var(--accent-2); letter-spacing: .08em; }
 .credit { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
 .credit a { color: var(--muted); }
+
+/* parts list with show/hide */
+.sub-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 18px 0 8px; }
+.sub-row .sub { margin: 0; }
+.mini { white-space: nowrap; flex: none; font: 500 11px var(--font); color: var(--muted); background: rgba(255,255,255,.06); border: 1px solid var(--panel-border); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
+.mini:hover { color: var(--text); }
+.parts { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.mod-row { display: flex; align-items: stretch; gap: 2px; min-width: 0; }
+.mod-row .mod { flex: 1; min-width: 0; }
+.mod-row .mod span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eye { flex: none; width: 28px; display: grid; place-items: center; background: rgba(255,255,255,.03); border: 0; border-radius: 7px; color: var(--muted); cursor: pointer; }
+.eye:hover { color: var(--text); background: rgba(255,255,255,.08); }
+.eye.off { color: #ff7a7a; }
+.mod-info { margin: 0 0 8px; }
+.chip.accent { background: rgba(255,201,77,.15); border-color: rgba(255,201,77,.5); }
+.chip[hidden] { display: none; }
+
+/* callouts */
+#leaders { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 1; }
+#leaders line { stroke-width: 1.2; opacity: .85; }
+#labels { z-index: 2; }
+.part-label { transform-origin: left center; }
+.hover-tip { position: fixed; left: 0; top: 0; z-index: 7; pointer-events: none; font: 600 12px var(--font); color: #0b1020; background: var(--c, #ffd54a); padding: 4px 8px; border-radius: 5px; opacity: 0; transition: opacity .12s; white-space: nowrap; box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+
+/* drag & drop */
+.drop-hint { position: fixed; inset: 0; z-index: 30; display: none; place-items: center; background: rgba(5,10,25,.78); }
+.drop-hint div { border: 2px dashed #6fb8ff; border-radius: 14px; padding: 36px 44px; font: 600 16px var(--font); color: #cfe8ff; background: rgba(12,24,48,.9); }
+body.dragging .drop-hint { display: grid; }
+
+@media (max-width: 760px) {
+  .parts { grid-template-columns: 1fr; }
+}

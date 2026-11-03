@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Satellite Hangar</title>
-  <meta name="description" content="Explore 3D models of Landsat 9 and Landsat 7: isolate instruments, explode the spacecraft, follow the light path, and compare whiskbroom and pushbroom sensors." />
+  <meta name="description" content="Inspect 3D satellite models: see internal structure with X-ray and transparency, isolate and label modules, explode the spacecraft, and open your own .glb or .stl files." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -16,7 +16,10 @@
 </head>
 <body class="craft">
   <div id="scene" aria-label="3D model of a Landsat satellite"></div>
+  <svg id="leaders" aria-hidden="true"></svg>
   <div id="labels" aria-hidden="true"></div>
+  <div id="hoverTip" class="hover-tip" aria-hidden="true"></div>
+  <div class="drop-hint" aria-hidden="true"><div>Drop .glb, .gltf or .stl files to inspect them</div></div>
 
   <header class="brand">
     <span class="brand-mark" aria-hidden="true"></span>
@@ -37,9 +40,12 @@
       <h1 id="title"></h1>
       <p id="body"></p>
       <div id="specs"></div>
-      <h3 class="sub" id="modHead">Modules <span>click to isolate</span></h3>
-      <div id="modules" class="modules"></div>
-      <div id="modInfo" class="mod-info" hidden></div>
+      <div id="picker" hidden></div>
+      <section id="partsSection">
+        <div class="sub-row"><h3 class="sub" id="modHead">Modules</h3><button id="showAll" class="mini">Show all</button></div>
+        <div id="modInfo" class="mod-info" hidden></div>
+        <div id="modules" class="parts"></div>
+      </section>
       <h3 class="sub">How the sensor scans</h3>
       <div class="scan">
         <figure><canvas id="scanWhisk" width="260" height="200"></canvas><figcaption><b>Whiskbroom</b> (ETM+): one mirror sweeps across the track</figcaption></figure>
@@ -54,10 +60,17 @@
       <input id="explode" type="range" min="0" max="1" step="0.01" value="0" />
     </label>
     <button id="xray" class="chip" aria-pressed="false">X-ray</button>
+    <label class="speed" title="How see-through ghosted parts are">
+      <span>See-through</span>
+      <input id="see" type="range" min="0.02" max="0.6" step="0.01" value="0.12" />
+    </label>
+    <button id="wire" class="chip" aria-pressed="false">Wireframe</button>
     <button id="paths" class="chip on" aria-pressed="true">Light paths</button>
-    <button id="labelsToggle" class="chip on" aria-pressed="true">Labels</button>
+    <button id="labelsToggle" class="chip on">Labels: main</button>
     <button id="spin" class="chip on" aria-pressed="true">Spin</button>
     <button id="reset" class="chip">Reset</button>
+    <button id="openFile" class="chip accent" title="Open your own .glb, .gltf or .stl (stays in your browser)">Open file…</button>
+    <input type="file" id="fileInput" accept=".glb,.gltf,.stl" multiple hidden />
   </div>
 
   <div id="loading" class="loading">Loading spacecraft…</div>

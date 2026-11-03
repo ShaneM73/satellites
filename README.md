@@ -31,6 +31,9 @@ Click any satellite (or its name in the side panel) for its launch date, orbit, 
 | 7 vs 9 | Side by side, with a whiskbroom vs pushbroom table and animated scan diagrams |
 | Lineage | Landsat 1–3, 4–5, 7, 8 and 9 in a row, 1972–2021 |
 | Gallery | NASA models of Terra, Aqua, Aura, Landsat 8, ICESat-2, GPM, OCO-2, Suomi NPP, GOES, Sentinel-6 and GRACE |
+| Open file… | Drop or pick your own `.glb`, `.gltf` or `.stl` files (several STL parts assemble into one scene). Nothing is uploaded. |
+
+**Inspection tools (all views):** X-ray and a See-through slider to reveal internal structure; click a part (or its name) to isolate it while the rest turns transparent; eye icons to hide parts; Wireframe; Labels: main / all / off, drawn as callouts with leader lines; hover to name a part. Models without named modules (most NASA models) are split into surface groups: insulation blankets, solar array, antennas, structure, radiators. Sentinel-6 uses its real instrument names.
 
 Deep links: `spacecraft.html#landsat9`, `#landsat7`, `#compare`, `#lineage`, `#gallery/terra`. Satellite cards on the globe link here with **View in 3D**.
 
