@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
-import { AGENCIES, SATELLITES, SWARMS, REFERENCE, STEPS } from './data.js';
+import { AGENCIES, SATELLITES, SWARMS, REFERENCE, STEPS, MODEL_LINKS } from './data.js';
 
 // ---------------------------------------------------------------- constants
 const R_EARTH = 6371;               // km; 1 scene unit = 1 Earth radius
@@ -304,6 +304,9 @@ function openCard(obj) {
   ui.cardOrbit.textContent = obj.isSwarm ? `Sun-synchronous, ~${d.alt} km, several planes` : orbitText(d.orbit);
   ui.cardSensors.textContent = d.sensors;
   ui.cardStatus.textContent = d.status;
+  const ml = $('cardModel');
+  ml.hidden = !MODEL_LINKS[d.id];
+  if (MODEL_LINKS[d.id]) ml.href = 'spacecraft.html#' + MODEL_LINKS[d.id];
   ui.card.hidden = false;
   highlighted = obj;
 }
@@ -504,6 +507,7 @@ function goTo(i) {
   if (step.facts) ui.extra.appendChild(renderFacts(step.facts));
   if (step.resolution) ui.extra.appendChild(renderResolution());
   if (step.filters) ui.extra.appendChild(renderFilters());
+  if (step.link) { const a = document.createElement('a'); a.className = 'step-link'; a.href = step.link.href; a.innerHTML = `${step.link.text} &rarr;`; ui.extra.appendChild(a); }
   for (const el of [ui.kicker, ui.title, ui.body, ui.extra]) { el.classList.remove('fade-in'); void el.offsetWidth; el.classList.add('fade-in'); }
   document.querySelector('.panel-inner').scrollTop = 0;
 

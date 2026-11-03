@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Satellite Hangar</title>
+  <meta name="description" content="Explore 3D models of Landsat 9 and Landsat 7: isolate instruments, explode the spacecraft, follow the light path, and compare whiskbroom and pushbroom sensors." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/spacecraft.css" />
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js" } }
+  </script>
+</head>
+<body class="craft">
+  <div id="scene" aria-label="3D model of a Landsat satellite"></div>
+  <div id="labels" aria-hidden="true"></div>
+
+  <header class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-name">Satellite Hangar</span>
+    <nav class="brand-nav"><a href="index.html#step=3">&larr; Globe tour</a></nav>
+  </header>
+
+  <aside class="panel">
+    <div class="panel-inner">
+      <div class="tabs" role="tablist">
+        <button role="tab" data-view="landsat9">Landsat 9</button>
+        <button role="tab" data-view="landsat7">Landsat 7</button>
+        <button role="tab" data-view="compare">7 vs 9</button>
+        <button role="tab" data-view="lineage">Lineage</button>
+        <button role="tab" data-view="gallery">Gallery</button>
+      </div>
+      <div class="kicker" id="kicker"></div>
+      <h1 id="title"></h1>
+      <p id="body"></p>
+      <div id="specs"></div>
+      <h3 class="sub" id="modHead">Modules <span>click to isolate</span></h3>
+      <div id="modules" class="modules"></div>
+      <div id="modInfo" class="mod-info" hidden></div>
+      <h3 class="sub">How the sensor scans</h3>
+      <div class="scan">
+        <figure><canvas id="scanWhisk" width="260" height="200"></canvas><figcaption><b>Whiskbroom</b> (ETM+): one mirror sweeps across the track</figcaption></figure>
+        <figure><canvas id="scanPush" width="260" height="200"></canvas><figcaption><b>Pushbroom</b> (OLI-2): a line of detectors images the whole row</figcaption></figure>
+      </div>
+    </div>
+  </aside>
+
+  <div class="controls craft-controls">
+    <label class="speed" title="Pull the spacecraft apart">
+      <span>Explode</span>
+      <input id="explode" type="range" min="0" max="1" step="0.01" value="0" />
+    </label>
+    <button id="xray" class="chip" aria-pressed="false">X-ray</button>
+    <button id="paths" class="chip on" aria-pressed="true">Light paths</button>
+    <button id="labelsToggle" class="chip on" aria-pressed="true">Labels</button>
+    <button id="spin" class="chip on" aria-pressed="true">Spin</button>
+    <button id="reset" class="chip">Reset</button>
+  </div>
+
+  <div id="loading" class="loading">Loading spacecraft…</div>
+  <footer class="note">Landsat 9 / 7 cutaways: schematic models · other models: NASA 3D Resources · not to scale · <a href="https://github.com/ShaneM73/satellites" target="_blank" rel="noopener">source</a></footer>
+
+  <script type="module" src="js/spacecraft.js"></script>
+</body>
+</html>

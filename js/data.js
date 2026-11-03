@@ -213,6 +213,13 @@ export const REFERENCE = [
     status: 'Used by GOES, Himawari, Meteosat', text: 'Orbits once per day over the equator, so it hovers above one spot and watches a whole hemisphere.' },
 ];
 
+// Satellites with a 3D model in the hangar (spacecraft.html)
+export const MODEL_LINKS = {
+  terra: 'gallery/terra', aqua: 'gallery/aqua', aura: 'gallery/aura', landsat8: 'gallery/landsat8', landsat9: 'landsat9',
+  icesat2: 'gallery/icesat2', gpm: 'gallery/gpm', oco2: 'gallery/oco2', snpp: 'gallery/snpp',
+  goes19: 'gallery/goes', goes18: 'gallery/goes', s6b: 'gallery/sentinel6', gracefo: 'gallery/grace',
+};
+
 export const STEPS = [
   {
     key: 'intro', kicker: 'Introduction', title: 'Eyes on Earth',
@@ -238,6 +245,7 @@ export const STEPS = [
     key: 'eos', kicker: 'Step 2', title: 'NASA’s EOS flagships',
     body: 'Terra, Aqua and Aura were built for six years and have flown for more than twenty. Out of fuel to hold their orbits, they are drifting and will end science operations in 2027–2028.',
     show: ['eos'], camera: { dist: 3.4, lat: 30, lon: 10 }, trails: ['terra'],
+    link: { href: 'spacecraft.html#gallery/terra', text: 'See Terra, Aqua and Aura in 3D' },
     endBars: [
       { name: 'Terra', start: 1999, end: 2027.1 },
       { name: 'Aqua', start: 2002.3, end: 2027.7 },
@@ -248,6 +256,7 @@ export const STEPS = [
     key: 'landsat', kicker: 'Step 3', title: 'Landsat: 54 years of land records',
     body: 'Landsat 8 and 9 share one orbit, half a cycle apart. Each repeats its path every 16 days; together they cover each spot every 8 days. Watch their 185 km paths build up.',
     show: ['landsat'], camera: { dist: 3.1, lat: 35, lon: -95 }, trails: ['landsat8', 'landsat9'],
+    link: { href: 'spacecraft.html#lineage', text: 'Explore Landsat 1 to 9 in 3D' },
     timeline: [
       ['1972', 'L1 · MSS'], ['1982', 'L4 · TM'], ['1984', 'L5 (29 yrs)'], ['1999', 'L7 · ETM+'],
       ['2013', 'L8 · OLI'], ['2021', 'L9 · OLI-2'], ['2025', 'L7 retired'], ['2031', 'L10 planned'],

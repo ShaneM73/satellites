@@ -21,6 +21,19 @@ An interactive 3D infographic that walks through the modern Earth observation fl
 
 Click any satellite (or its name in the side panel) for its launch date, orbit, sensors and status. Arrow keys move between steps; `#step=3` in the URL deep-links to a step.
 
+## 3D satellite hangar (`spacecraft.html`)
+
+**Live:** https://shanem73.github.io/satellites/spacecraft.html
+
+| View | What it does |
+|------|--------------|
+| Landsat 9 / Landsat 7 | Detailed cutaway models: click a module (OLI-2, TIRS-2, ETM+ scan mirror, star trackers…) to isolate it, X-ray the bus, pull parts apart with the Explode slider, and follow the animated light paths. Landsat 7's scan mirror oscillates. |
+| 7 vs 9 | Side by side, with a whiskbroom vs pushbroom table and animated scan diagrams |
+| Lineage | Landsat 1–3, 4–5, 7, 8 and 9 in a row, 1972–2021 |
+| Gallery | NASA models of Terra, Aqua, Aura, Landsat 8, ICESat-2, GPM, OCO-2, Suomi NPP, GOES, Sentinel-6 and GRACE |
+
+Deep links: `spacecraft.html#landsat9`, `#landsat7`, `#compare`, `#lineage`, `#gallery/terra`. Satellite cards on the globe link here with **View in 3D**.
+
 ## Run locally
 
 No build step. Serve the folder with any static server:
@@ -39,3 +52,6 @@ python3 -m http.server 8000
 
 - [three.js](https://threejs.org) r169 (MIT), vendored in `vendor/`.
 - Earth textures (NASA Blue Marble and Black Marble, via the [three-globe](https://github.com/vasturiano/three-globe) examples).
+- Landsat 9 and Landsat 7 cutaway models (`assets/models/`): schematic models with named modules by the project author.
+- Gallery and lineage models (`assets/models/nasa/`): [NASA 3D Resources](https://github.com/nasa/NASA-3D-Resources), "free and without copyright". Landsat 1–3 and 4–5 were recompressed (Draco + WebP, 1024 px textures); Terra's two missing external textures were removed. Use of NASA models does not imply NASA endorsement.
+- Draco decoder and GLTFLoader from three.js r169 (`vendor/`).
